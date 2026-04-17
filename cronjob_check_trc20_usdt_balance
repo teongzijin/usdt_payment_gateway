@@ -1,0 +1,80 @@
+const axios = require('axios');
+const crypto = require('crypto');
+
+const TRON_GRID_API = 'https://api.trongrid.io';
+const API_KEY = 'ddddddddd'; // TronGrid API Key
+const CONFIRMATION_THRESHOLD = 20; 
+
+async function getLatestBlock() {
+    const res = await axios.get(`${TRON_GRID_API}/wallet/getnowblock`, {
+        headers: { 'TRON-PRO-API-KEY': API_KEY }
+    });
+    return res.data.block_header.raw_data.number;
+}
+
+async function run() {
+    try {
+        const latestBlock = await getLatestBlock();
+        console.log(`Current Tron Block: ${latestBlock}`);
+
+        // 1. get wallets from backend
+        const response = await axios.post(url_active_wallet);
+        const check_list = response.data;
+
+        for (const wallet of check_list) {
+            const check_address = wallet.wallet_address;
+            const p_id = wallet.id;
+
+            // 2. check trongrid history
+            const url = `${TRON_GRID_API}/v1/accounts/${check_address}/transactions/trc20?only_confirmed=true&limit=20&contract_address=TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t&only_to=true`;
+            
+            const res = await axios.get(url, { headers: { 'TRON-PRO-API-KEY': API_KEY } });
+            const transactions = res.data.data;
+
+            for (const tx of transactions) {
+                if (tx.type === "Transfer") {
+                    // 3. Block Depth confirmation
+                    const txBlock = tx.block_number;
+                    const confirmations = latestBlock - txBlock;
+
+                    if (confirmations >= CONFIRMATION_THRESHOLD) {
+                        console.log(`TX ${tx.transaction_id} is safe. Confirmations: ${confirmations}`);
+                        
+                        const rawValue = tx.value;
+                        const amount = (parseFloat(rawValue) / 1000000).toString();
+                        
+                        await update_balance(check_address, amount, rawValue, p_id, "TUSDT", tx.transaction_id);
+                    } else {
+                        console.log(`TX ${tx.transaction_id} pending. Only ${confirmations} confirmations.`);
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        console.error("TRC20 Runner Error:", error.message);
+    }
+}
+
+async function update_balance(addr, amt, amt_str, p_id, _crypto, txn_id) {
+    const digest = crypto.createHmac('sha256', ibcn_key)
+                        .update(ibcn_key + amt_str + _crypto + amt + p_id + txn_id)
+                        .digest('hex');
+
+    const params = {
+        wallet_address: addr,
+        amount: amt,
+        id: p_id,
+        crypto: _crypto,
+        digest: digest,
+        txn_id: txn_id
+    };
+
+    try {
+        const res = await axios.get(url_update_trans, { params });
+        console.log(`Update Response: ${JSON.stringify(res.data)}`);
+    } catch (err) {
+        console.error("Update Balance API Error");
+    }
+}
+
+setInterval(run, 15000); 
