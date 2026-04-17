@@ -29,11 +29,11 @@ Security Layer: Verifies block depth to ensure transaction finality.
 
 Notification Worker: Executes signed callbacks with a retry lifecycle.
 
-🛠 Tech Stack
+Tech Stack
 Backend: Node.js
 
-Blockchain: Web3.js, TronWeb, Ethereumjs-tx
+Blockchain: Web3.js, TronWeb
 
-Security: HMAC-SHA256, AES-256
+Security: HMAC-SHA256
 
-Database: MSSQL / MySQL
+Database: MySQL
