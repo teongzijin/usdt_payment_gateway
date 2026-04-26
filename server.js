@@ -59,22 +59,36 @@ const ERC20_ABI = ["event Transfer(address indexed from, address indexed to, uin
 /**
  * Handles payment confirmation, database updates, and Webhook signing.
  */
-async function handlePayment(network, to, amount, txHash) {
+const CONFIRMATION_THRESHOLD = {
+    TRC20: 19,
+    ERC20: 12
+};
+// In handlePayment, we now need the currentBlock information
+async function handlePayment(network, to, amount, txHash, txBlockNumber) {
     try {
-        // 1. Log the transaction for monitoring (Idempotency is handled by DB UNIQUE constraint)
-        await db.logTransaction({
-            txHash,
-            network,
-            toAddress: to,
-            amount: parseFloat(amount)
-        });
+        // Get current block height to calculate confirmations
+        let currentBlock;
+        if (network === 'ERC20') {
+            currentBlock = await ethProvider.getBlockNumber();
+        } else {
+            const nodeInfo = await tronWeb.trx.getCurrentBlock();
+            currentBlock = nodeInfo.block_header.raw_data.number;
+        }
 
-        console.log(`[${network}] Detected Transfer: ${amount} USDT to ${to}`);
+        const confirmations = currentBlock - txBlockNumber;
+        console.log(`[${network}] Tx ${txHash} has ${confirmations} confirmations.`);
 
-        // 2. Attempt to match and update a pending order in the database
-        const rowsAffected = await db.updateOrderStatusByPayment(to, parseFloat(amount), network, txHash);
-        
-        // 3. If an order was matched and updated, generate a secure Webhook notification
+        // 1. Log transaction as 'DETECTED' (optional UI status)
+        await db.logTransaction({ txHash, network, toAddress: to, amount, status: 'CONFIRMING' });
+
+        // 2. Threshold Check
+        if (confirmations < CONFIRMATION_THRESHOLD[network]) {
+            console.log(`⏳ Waiting for more confirmations... (${confirmations}/${CONFIRMATION_THRESHOLD[network]})`);
+            return; // Not enough confirmations yet
+        }
+
+        // 3. If passed threshold, proceed with SUCCESS logic and SHA256 Webhook
+        const rowsAffected = await db.updateOrderStatusByPayment(to, amount, network, txHash);
         if (rowsAffected > 0) {
             console.log(`Order matched! Status updated to SUCCESS.`);
 
@@ -97,12 +111,10 @@ async function handlePayment(network, to, amount, txHash) {
             // Note: In production, you would send this to the Merchant's URL:
             // axios.post(merchant_url, payload, { headers: { 'X-Signature': signature } });
         }
-        
     } catch (error) {
-        console.error('Error in handlePayment:', error.message);
+        console.error('Threshold Check Error:', error);
     }
 }
-
 // --- Listener Services (Scanner) ---
 
 async function startScanners() {
@@ -115,7 +127,7 @@ async function startScanners() {
             if (err) return console.error('Tron Watch Error:', err);
             const { to, value } = event.result;
             const amount = value / USDT_PRECISION;
-            await handlePayment('TRC20', tronWeb.address.fromHex(to), amount, event.transaction_id);
+            await handlePayment('TRC20', tronWeb.address.fromHex(to), amount, event.transaction_id, event.block_number);
         });
         console.log("TRC20 Scanner Active");
     } catch (e) { console.error("TRC20 Scanner Failed", e); }
@@ -125,7 +137,7 @@ async function startScanners() {
         const erc20Contract = new ethers.Contract(CONTRACTS.ERC20, ERC20_ABI, ethProvider);
         erc20Contract.on("Transfer", async (from, to, value, event) => {
             const amount = ethers.formatUnits(value, 6);
-            await handlePayment('ERC20', to, amount, event.log.transactionHash);
+            await handlePayment('ERC20', to, amount, event.log.transactionHash, event.log.blockNumber);
         });
         console.log("ERC20 Scanner Active");
     } catch (e) { console.error("ERC20 Scanner Failed", e); }
