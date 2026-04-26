@@ -1,5 +1,5 @@
 /**
- * USDT Multi-Chain Payment Gateway - Demo Version (Database Integrated)
+ * USDT Multi-Chain Payment Gateway - Demo Version (Database & Security Integrated)
  * Support: TRC20 (Tron) & ERC20 (Ethereum)
  * Author: teongzijin
  */
@@ -9,7 +9,8 @@ const express = require('express');
 const cors = require('cors');
 const TronWeb = require('tronweb');
 const { ethers } = require('ethers');
-const db = require('./database'); // Import the database module
+const crypto = require('crypto'); // Built-in node module for SHA256
+const db = require('./database');
 
 const app = express();
 app.use(cors());
@@ -20,9 +21,28 @@ const PORT = process.env.PORT || 3000;
 const USDT_PRECISION = 1e6;
 
 const CONTRACTS = {
-    TRC20: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+    TRC20: "TR7NHqjeKQxGTC18q8ZY4pL8otSzgjLj6t",
     ERC20: "0xdAC17F958D2ee523a2206206994597C13D831ec7"
 };
+
+// --- Security Functions ---
+
+/**
+ * Generates a SHA256 HMAC signature to ensure Webhook data integrity.
+ * This prevents spoofing attacks from unauthorized parties.
+ */
+function generateSignature(data, secret) {
+    // Sort keys alphabetically to ensure consistent hashing across different platforms
+    const sortedData = Object.keys(data).sort().reduce((obj, key) => {
+        obj[key] = data[key];
+        return obj;
+    }, {});
+
+    const queryString = JSON.stringify(sortedData);
+    return crypto.createHmac('sha256', secret)
+        .update(queryString)
+        .digest('hex');
+}
 
 // --- Blockchain Connection Initialization ---
 
@@ -37,12 +57,11 @@ const ERC20_ABI = ["event Transfer(address indexed from, address indexed to, uin
 // --- Core Business Logic Functions ---
 
 /**
- * Handles payment confirmation and database synchronization
+ * Handles payment confirmation, database updates, and Webhook signing.
  */
 async function handlePayment(network, to, amount, txHash) {
     try {
-        // 1. Log the transaction in the monitoring list
-        // The database handle 'INSERT OR IGNORE' for idempotency internally
+        // 1. Log the transaction for monitoring (Idempotency is handled by DB UNIQUE constraint)
         await db.logTransaction({
             txHash,
             network,
@@ -52,19 +71,32 @@ async function handlePayment(network, to, amount, txHash) {
 
         console.log(`[${network}] Detected Transfer: ${amount} USDT to ${to}`);
 
-        // 2. Fetch all pending orders for this network and address
-        // Note: In a large system, you'd query by address directly for performance
-        // For this demo, we'll implement a simple matching logic
-        const latestTransactions = await db.getRecentTransactions();
+        // 2. Attempt to match and update a pending order in the database
+        const rowsAffected = await db.updateOrderStatusByPayment(to, parseFloat(amount), network, txHash);
         
-        // This logic would typically be a DB query in production: 
-        // SELECT * FROM orders WHERE status='PENDING' AND payAddress=to AND amount=amount
-        // For the demo, let's assume we fetch the order and update it:
-        
-        // --- MATCHING LOGIC ---
-        // (Simplified for Demo: You would typically pass the order lookup to database.js)
-        // Let's assume we update any matching pending order
-        await db.updateOrderStatusByPayment(to, parseFloat(amount), network, txHash);
+        // 3. If an order was matched and updated, generate a secure Webhook notification
+        if (rowsAffected > 0) {
+            console.log(`Order matched! Status updated to SUCCESS.`);
+
+            // Prepare Webhook Payload
+            const payload = {
+                event: 'payment.success',
+                network: network,
+                to: to,
+                amount: parseFloat(amount),
+                txHash: txHash,
+                timestamp: Date.now()
+            };
+
+            // Generate HMAC-SHA256 Signature using the Merchant Secret
+            const signature = generateSignature(payload, process.env.MERCHANT_SECRET || 'default_secret');
+
+            console.log(`Webhook Payload Generated:`, payload);
+            console.log(`SHA256 Signature: ${signature}`);
+            
+            // Note: In production, you would send this to the Merchant's URL:
+            // axios.post(merchant_url, payload, { headers: { 'X-Signature': signature } });
+        }
         
     } catch (error) {
         console.error('Error in handlePayment:', error.message);
@@ -76,7 +108,7 @@ async function handlePayment(network, to, amount, txHash) {
 async function startScanners() {
     console.log("Starting Multi-Chain Scanners...");
 
-    // A. TRC20 (Tron) Scanner
+    // TRC20 Scanner
     try {
         const trc20Contract = await tronWeb.contract().at(CONTRACTS.TRC20);
         trc20Contract.Transfer().watch(async (err, event) => {
@@ -88,7 +120,7 @@ async function startScanners() {
         console.log("TRC20 Scanner Active");
     } catch (e) { console.error("TRC20 Scanner Failed", e); }
 
-    // B. ERC20 (Ethereum) Scanner
+    // ERC20 Scanner
     try {
         const erc20Contract = new ethers.Contract(CONTRACTS.ERC20, ERC20_ABI, ethProvider);
         erc20Contract.on("Transfer", async (from, to, value, event) => {
@@ -101,10 +133,6 @@ async function startScanners() {
 
 // --- API Routes ---
 
-/**
- * 1. Create Order
- * Persists a new payment request to the SQLite database
- */
 app.post('/api/orders/create', async (req, res) => {
     const { amount, network } = req.body;
     if (!amount || !network) return res.status(400).json({ error: "Missing parameters" });
@@ -124,10 +152,6 @@ app.post('/api/orders/create', async (req, res) => {
     }
 });
 
-/**
- * 2. Get Transaction Flow
- * Fetches the latest 50 records from the database for the UI dashboard
- */
 app.get('/api/transactions', async (req, res) => {
     try {
         const rows = await db.getRecentTransactions();
@@ -137,25 +161,16 @@ app.get('/api/transactions', async (req, res) => {
     }
 });
 
-/**
- * 3. Check Order Status
- * Verifies the current status of a specific order
- */
 app.get('/api/orders/:id', async (req, res) => {
-    try {
-        // You'll need to add getOrderById to your database.js
-        // For now, we simulate the logic
-        res.json({ success: true, message: "Order status fetched from DB" });
-    } catch (error) {
-        res.status(500).json({ error: "Database error" });
-    }
+    // Simulated order status check
+    res.json({ success: true, message: "Order status check active" });
 });
+
+// Serve the Monitoring Dashboard
+app.use(express.static('public')); 
 
 // --- Start Server ---
 app.listen(PORT, () => {
     console.log(`Gateway Backend running on http://localhost:${PORT}`);
     startScanners();
 });
-
-// server.js
-app.use(express.static('public')); 
