@@ -1,1 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USDT Payment Gateway Dashboard</title>
+    <!-- Bootstrap 5 Dark Mode CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #0d1117; color: #c9d1d9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card { background-color: #161b22; border: 1px solid #30363d; }
+        .table { color: #c9d1d9; border-color: #30363d; }
+        .status-badge { padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; }
+        .bg-success-custom { background-color: #238636; color: white; }
+        .bg-primary-custom { background-color: #1f6feb; color: white; }
+        .tx-hash { font-family: 'Courier New', Courier, monospace; color: #58a6ff; text-decoration: none; }
+        .tx-hash:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
 
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>USDT Gateway <span class="badge bg-secondary">Live Monitor</span></h1>
+        <div id="connection-status" class="text-success small">● Connected to Backend</div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card p-3 shadow-sm">
+                <div class="text-secondary small">Total Transactions (Last 50)</div>
+                <div id="total-count" class="h2 mb-0">0</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-3 shadow-sm">
+                <div class="text-secondary small">Supported Networks</div>
+                <div class="h2 mb-0">TRC20 / ERC20</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transaction List Table -->
+    <div class="card shadow-sm">
+        <div class="card-header border-bottom border-secondary d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Recent On-Chain Activities</h5>
+            <button class="btn btn-sm btn-outline-light" onclick="fetchTransactions()">Refresh Now</button>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Time</th>
+                            <th>Network</th>
+                            <th>Amount</th>
+                            <th>Receiver (To)</th>
+                            <th>TxID (Hash)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tx-body">
+                        <!-- Data will be injected here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_URL = 'http://localhost:3000/api/transactions';
+
+    async function fetchTransactions() {
+        try {
+            const response = await fetch(API_URL);
+            const resData = await response.json();
+            
+            if (resData.success) {
+                renderTable(resData.data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch transactions:', error);
+            document.getElementById('connection-status').innerHTML = '<span class="text-danger">● Backend Disconnected</span>';
+        }
+    }
+
+    function renderTable(txs) {
+        const tbody = document.getElementById('tx-body');
+        document.getElementById('total-count').innerText = txs.length;
+        
+        tbody.innerHTML = txs.map(tx => {
+            // Explorer links based on network
+            const explorerUrl = tx.network === 'TRC20' 
+                ? `https://tronscan.org/#/transaction/${tx.txHash}`
+                : `https://etherscan.io/tx/${tx.txHash}`;
+
+            return `
+                <tr>
+                    <td class="small">${new Date(tx.timestamp).toLocaleString()}</td>
+                    <td>
+                        <span class="status-badge ${tx.network === 'TRC20' ? 'bg-danger' : 'bg-primary-custom'}">
+                            ${tx.network}
+                        </span>
+                    </td>
+                    <td class="fw-bold">${tx.amount} <span class="small text-secondary">USDT</span></td>
+                    <td class="small text-secondary">${tx.toAddress.substring(0, 8)}...${tx.toAddress.substring(tx.toAddress.length - 8)}</td>
+                    <td>
+                        <a href="${explorerUrl}" target="_blank" class="tx-hash">
+                            ${tx.txHash.substring(0, 10)}...
+                        </a>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    // Auto refresh every 5 seconds
+    setInterval(fetchTransactions, 5000);
+    // Initial fetch
+    fetchTransactions();
+</script>
+
+</body>
+</html>
