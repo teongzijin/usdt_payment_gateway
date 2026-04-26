@@ -61,12 +61,16 @@ const dbOps = {
     },
 
     // Update order status when payment is confirmed
-    updateOrderStatus: (orderId, status, txHash) => {
+    updateOrderStatusByPayment: (address, amount, network, txHash) => {
         return new Promise((resolve, reject) => {
-            const query = `UPDATE orders SET status = ?, txHash = ?, confirmedAt = CURRENT_TIMESTAMP WHERE orderId = ?`;
-            db.run(query, [status, txHash, orderId], (err) => {
+            const query = `
+                UPDATE orders 
+                SET status = 'SUCCESS', txHash = ?, confirmedAt = CURRENT_TIMESTAMP 
+                WHERE payAddress = ? AND amount = ? AND network = ? AND status = 'PENDING'
+            `;
+            db.run(query, [txHash, address, amount, network], function(err) {
                 if (err) reject(err);
-                else resolve();
+                else resolve(this.changes); // Returns number of rows updated
             });
         });
     },
