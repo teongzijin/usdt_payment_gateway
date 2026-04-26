@@ -1,6 +1,9 @@
 🚀 USDT Multi-Chain Payment GatewayEnterprise-Grade Blockchain Monitoring & ReconciliationA high-performance USDT payment middleware built with Node.js. This gateway provides real-time monitoring and secure reconciliation for both TRC20 (Tron) and ERC20 (Ethereum) networks.
+
 🏗 System ArchitectureThe gateway follows a "Listen-Verify-Reconcile" model to ensure 100% payment accuracy:Scanner Engine: High-performance event listeners capturing on-chain Transfer events in real-time.Confirmation Engine: Implements a Threshold Check to mitigate risks from blockchain reorganizations (Rollbacks).Security Layer: Utilizes HMAC-SHA256 signatures for tamper-proof merchant notifications.Persistence: Powered by SQLite to ensure zero data loss during server restarts.
+
 🛡 Security MechanismsFeatureDescriptionPurposeThreshold CheckETH (12 blocks) / TRON (19 blocks)Prevents Double-Spend & Reorg attacksSHA256 SignatureSigned with a Merchant SecretPrevents spoofing of Webhook notificationsIdempotency GuardUnique TxHash database indexingEnsures a single transaction is never credited twiceEnv IsolationManaged via .env configurationProtects sensitive API Keys and Secrets
+
 🚀 Getting Started1. InstallationBash# Clone the repository
 git clone https://github.com/yourusername/usdt_payment_gateway.git
 
