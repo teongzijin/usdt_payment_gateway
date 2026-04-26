@@ -156,3 +156,6 @@ app.listen(PORT, () => {
     console.log(`Gateway Backend running on http://localhost:${PORT}`);
     startScanners();
 });
+
+// server.js
+app.use(express.static('public')); 
