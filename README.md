@@ -11,11 +11,11 @@ The gateway follows a "Listen-Verify-Reconcile" model to ensure 100% payment acc
 4. Env Isolation: Managed via .env configuration to protects sensitive API Keys and Secrets 
 
 # Getting Started
-1. InstallationBash# Clone the repository
+1. Clone the repository 
 git clone https://github.com/yourusername/usdt_payment_gateway.git
 
 # Enter the directory and install dependencies
-cd usdt_payment_gateway 
+cd usdt_payment_gateway  
 npm install 
 2. ConfigurationCreate a .env file in the root directory based on the following template: 
 PORT=3000 
