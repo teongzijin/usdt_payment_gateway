@@ -5,10 +5,10 @@ A high-performance USDT payment middleware built with Node.js. This gateway prov
 The gateway follows a "Listen-Verify-Reconcile" model to ensure 100% payment accuracy:Scanner Engine: High-performance event listeners capturing on-chain Transfer events in real-time.Confirmation Engine: Implements a Threshold Check to mitigate risks from blockchain reorganizations (Rollbacks).Security Layer: Utilizes HMAC-SHA256 signatures for tamper-proof merchant notifications.Persistence: Powered by SQLite to ensure zero data loss during server restarts.
 
 # Security Mechanisms
-1. Threshold Check: ETH (12 blocks) / TRON (19 blocks) purpose is to prevents Double-Spend & Reorg attacks
-2. SHA256 Signature: Signed with a Merchant Secret to prevent spoofing of Webhook notifications
-3. Idempotency Guard: Unique TxHash database indexing to ensures a single transaction is never credited twice
-4, Env Isolation: Managed via .env configuration to protects sensitive API Keys and Secrets
+1. Threshold Check: ETH (12 blocks) / TRON (19 blocks) purpose is to prevents Double-Spend & Reorg attacks 
+2. SHA256 Signature: Signed with a Merchant Secret to prevent spoofing of Webhook notifications 
+3. Idempotency Guard: Unique TxHash database indexing to ensures a single transaction is never credited twice 
+4, Env Isolation: Managed via .env configuration to protects sensitive API Keys and Secrets 
 
 # Getting Started
 1. InstallationBash# Clone the repository
