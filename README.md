@@ -16,7 +16,7 @@ The gateway follows a "Listen-Verify-Reconcile" model to ensure 100% payment acc
 
 # Getting Started
 1. Clone the repository 
-git clone https://github.com/yourusername/usdt_payment_gateway.git
+git clone https://github.com/teongzijin/usdt_payment_gateway.git
 
 # Enter the directory and install dependencies
 cd usdt_payment_gateway  
