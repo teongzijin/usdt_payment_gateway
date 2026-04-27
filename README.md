@@ -18,11 +18,11 @@ git clone https://github.com/yourusername/usdt_payment_gateway.git
 cd usdt_payment_gateway  
 npm install  
 2. ConfigurationCreate a .env file in the root directory based on the following template: 
-PORT=3000 
-TRON_GRID_API_KEY=your_trongrid_key 
-ETH_RPC_URL=your_ethereum_rpc_url 
-MERCHANT_SECRET=your_custom_signing_secret 
-3. Start the gateway and scanners 
+PORT=3000  
+TRON_GRID_API_KEY=your_trongrid_key  
+ETH_RPC_URL=your_ethereum_rpc_url  
+MERCHANT_SECRET=your_custom_signing_secret  
+3. Start the gateway and scanners  
 npm start
 
 # (Optional) Run the mock script to simulate payments
