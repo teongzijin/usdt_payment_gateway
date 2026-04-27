@@ -36,8 +36,8 @@ node mock_tx.js
 [!IMPORTANT]Once started, visit http://localhost:3000 to access the live monitoring dashboard.
 
 # Tech StackBackend: 
-Node.js + Express
-Blockchain: TronWeb + Ethers.js (v6)
+Node.js + Express  
+Blockchain: TronWeb + Ethers.js (v6)  
 Database: SQLite3
 Frontend: Bootstrap 5 (Dark Mode) + Vanilla JS
 
