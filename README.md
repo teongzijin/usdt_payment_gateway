@@ -8,7 +8,7 @@ The gateway follows a "Listen-Verify-Reconcile" model to ensure 100% payment acc
 1. Threshold Check: ETH (12 blocks) / TRON (19 blocks) purpose is to prevents Double-Spend & Reorg attacks 
 2. SHA256 Signature: Signed with a Merchant Secret to prevent spoofing of Webhook notifications 
 3. Idempotency Guard: Unique TxHash database indexing to ensures a single transaction is never credited twice 
-4, Env Isolation: Managed via .env configuration to protects sensitive API Keys and Secrets 
+4. Env Isolation: Managed via .env configuration to protects sensitive API Keys and Secrets 
 
 # Getting Started
 1. InstallationBash# Clone the repository
@@ -33,6 +33,6 @@ node mock_tx.js
 Node.js + Express
 Blockchain: TronWeb + Ethers.js (v6)
 Database: SQLite3
-Frontend: Bootstrap 5 (Dark Mode) + Vanilla JS👨‍💻 
+Frontend: Bootstrap 5 (Dark Mode) + Vanilla JS
 
 
