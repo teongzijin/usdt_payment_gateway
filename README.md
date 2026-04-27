@@ -16,7 +16,7 @@ git clone https://github.com/yourusername/usdt_payment_gateway.git
 
 # Enter the directory and install dependencies
 cd usdt_payment_gateway  
-npm install 
+npm install  
 2. ConfigurationCreate a .env file in the root directory based on the following template: 
 PORT=3000 
 TRON_GRID_API_KEY=your_trongrid_key 
