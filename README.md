@@ -32,7 +32,7 @@ MERCHANT_SECRET=your_custom_signing_secret
 npm start
 
 # (Optional) Run the mock script to simulate payments
-node mock_tx.js
+node mock_tx.js 
 [!IMPORTANT]Once started, visit http://localhost:3000 to access the live monitoring dashboard.
 
 # Tech StackBackend: 
